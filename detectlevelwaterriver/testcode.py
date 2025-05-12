@@ -11,9 +11,9 @@ height, width, _ = cv_image.shape
 
 # นิยามระดับน้ำ (จากด้านบนลงล่าง)
 levels = {
-    "High Water Level": int(height * 0.7),
-    "Medium Water Level": int(height * 0.8),
-    "Low Water Level": int(height * 0.9)
+    "High Water Level": int(height * 0.6),
+    "Medium Water Level": int(height * 0.7),
+    "Low Water Level": int(height * 0.8)
 }
 
 # กำหนดช่วงสีน้ำตาล (น้ำแม่น้ำ)
