@@ -1,19 +1,16 @@
 import cv2
 import numpy as np
 
-# Load image from file (replace with the path to your image)
+# Load image from file
 image_path = 'detectcolorriver/img/pic_1.jpg'
 frame = cv2.imread(image_path)
-
 frame = cv2.resize(frame, (640, 480))
 
 if frame is None:
     print("Error: Unable to load the image.")
     exit(1)
 
-# Function to determine the water color level
 def get_water_level(color_bgr):
-    # Define the color ranges for each level (BGR format)
     color_ranges = [
         {
             "level": "Level 1: Light Yellow", 
@@ -41,49 +38,43 @@ def get_water_level(color_bgr):
             "max": np.array([80, 50, 30])
         }
     ]
-
-    # Compare the color with the defined ranges
     for color_range in color_ranges:
         if np.all(color_bgr >= color_range["min"]) and np.all(color_bgr <= color_range["max"]):
             return color_range["level"]
-    return "Unknown Level"  # In case it doesn't match any range
+    return "Unknown Level"
 
-# Calculate the center of the image
-frame_width, frame_height = frame.shape[1], frame.shape[0]
-center_x, center_y = frame_width // 2, frame_height // 2
+frame_height, frame_width = frame.shape[:2]
+box_size = 10  # Half of box width
+grid_size = 3
+spacing = 2 * box_size + 5
 
-# Define the size of the box
-box_size = 13  # Increased size for averaging over a larger area
+start_x = frame_width // 2 - spacing
+start_y = frame_height // 2 - spacing
 
-# Calculate the position of the box
-x1, y1 = center_x - box_size, center_y - box_size
-x2, y2 = center_x + box_size, center_y + box_size
+results = []  # Store results of each box
 
-# Crop the box to stay within the frame boundaries
-x1 = max(0, x1)
-y1 = max(0, y1)
-x2 = min(frame_width, x2)
-y2 = min(frame_height, y2)
+for row in range(grid_size):
+    for col in range(grid_size):
+        cx = start_x + col * spacing
+        cy = start_y + row * spacing
+        x1, y1 = max(0, cx - box_size), max(0, cy - box_size)
+        x2, y2 = min(frame_width, cx + box_size), min(frame_height, cy + box_size)
 
-# Crop the region of interest (ROI) for averaging
-roi = frame[y1:y2, x1:x2]
+        roi = frame[y1:y2, x1:x2]
+        avg_color = np.mean(roi, axis=(0, 1)).astype(np.uint8)
+        level = get_water_level(avg_color)
 
-# Calculate the average color of the ROI (region of interest)
-average_color = np.mean(roi, axis=(0, 1)).astype(np.uint8)
-print("Average BGR color:", average_color)
+        # Draw the box
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
 
-# Determine the water level based on the average color
-water_level = get_water_level(average_color)
+        # Add to result list
+        results.append(f"({row},{col}): {level}")
 
-# Display the result on the image
-cv2.putText(frame, water_level, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+# Display all levels at top-left corner
+start_text_y = 20
+for i, text in enumerate(results):
+    cv2.putText(frame, text, (10, start_text_y + i * 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
 
-# Create a box around the center position
-cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-
-# Display the image
-cv2.imshow("Image", frame)
-
-# Wait for any key press to close the window
+cv2.imshow("3x3 Grid Water Levels", frame)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
